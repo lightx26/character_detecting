@@ -129,38 +129,38 @@ def detect_regions(image, preprocess_method=preprocess_image, ksize=(25, 30), bl
     return regions
 
 
-def detect_words(region, preprocess_method=preprocess_image, ksize=(5, 8)):
-    preprocessed_image = preprocess_method(region, ksize)
+def detect_words(parent_img, preprocess_method=preprocess_image, ksize=(5, 8)):
+    preprocessed_image = preprocess_method(parent_img, ksize)
 
     contours = find_contours(preprocessed_image)
     word_contours = filter_contours(contours, "word")
-    print(len(contours), len(word_contours))
 
     words = []
-    region2 = region.copy()
+    parent_img2 = parent_img.copy()
     for i, contour in enumerate(word_contours):
         x, y, w, h = cv2.boundingRect(contour)
-        cv2.rectangle(region2, (x, y), (x + w, y + h), (0, 255, 0), 1)
-        words.append(region[y:y + h, x:x + w])
-    cv2.imshow("Words", region2)
+        cv2.rectangle(parent_img2, (x, y), (x + w, y + h), (0, 255, 0), 1)
+        words.append(parent_img[y:y + h, x:x + w])
+    cv2.imshow("Words", parent_img2)
 
     return words
 
 
-def detect_chars(word, preprocess_method=preprocess_image, ksize=(1, 8), title="Chars"):
-    preprocessed_image = preprocess_method(word, ksize)
+def detect_chars(parent_img, preprocess_method=preprocess_image, ksize=(1, 8), title="Chars", show_result=False):
+    preprocessed_image = preprocess_method(parent_img, ksize)
 
     contours = find_contours(preprocessed_image)
     char_contours = filter_contours(contours, "char")
-    print(len(contours), len(char_contours))
 
     chars = []
-    word2 = word.copy()
+    parent_img2 = parent_img.copy()
     for i, contour in enumerate(char_contours):
         x, y, w, h = cv2.boundingRect(contour)
-        cv2.rectangle(word2, (x, y), (x + w, y + h), (0, 255, 0), 1)
-        chars.append(word[y:y + h, x:x + w])
-    cv2.imshow(title, word2)
+        cv2.rectangle(parent_img2, (x, y), (x + w, y + h), (0, 255, 0), 1)
+        chars.append(parent_img[y:y + h, x:x + w])
+
+    if show_result:
+        cv2.imshow(title, parent_img2)
 
     return chars
 
