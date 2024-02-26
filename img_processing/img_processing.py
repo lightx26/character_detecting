@@ -112,7 +112,7 @@ def filter_contours(contours, component):
 #         area = cv2.contourArea(cnt)
 #         x, y, w, h = cv2.boundingRect(cnt)
 #         # Filter based on aspect ratio, area, and other desired criteria
-#         if median_area / 5 < area < median_area * 2 and 0.1 <= w / h <= 2.5:
+#         if median_area / 5 < area < median_area * 2 and 0.i <= w / h <= 2.5:
 #             filtered_contours.append(cnt)
 #
 #     return filtered_contours
@@ -176,21 +176,50 @@ def detect_chars(parent_img, preprocess_method=preprocess_image, ksize=(1, 8), t
         cv2.imshow(title, parent_img2)
 
     return chars
+def __convert_to_normal_char(char):
+
+    normal_char = "abcdefghijklmnopqrstuvwxyz"
+    if char in normal_char:
+        return char
+
+    # Define a dictionary mapping special characters to their ASCII equivalents
+    special_char_map = {
+        "a": ["à", "á", "ả", "ã", "ạ", "â", "ầ", "ấ", "ẩ", "ẫ", "ậ", "ă", "ằ", "ắ", "ẳ", "ẵ", "ặ"],
+        "e": ["è", "é", "ẻ", "ẽ", "ẹ", "ê", "ề", "ế", "ể", "ễ", "ệ"],
+        "i": ["ì", "í", "ỉ", "ĩ", "ị"],
+        "o": ["ò", "ó", "ỏ", "õ", "ọ", "ô", "ồ", "ố", "ổ", "ỗ", "ộ", "ơ", "ờ", "ớ", "ở", "ỡ", "ợ"],
+        "u": ["ù", "ú", "ủ", "ũ", "ụ", "ư", "ừ", "ứ", "ử", "ữ", "ự"],
+        "y": ["ỳ", "ý", "ỷ", "ỹ", "ỵ"],
+        "d": ["đ"],
+    }
+
+    for key in special_char_map:
+        if char in special_char_map[key]:
+          return key
+
+    # If not found, return the original character
+    return char
 
 
-def write_image(images, output_folder):
+def write_image(images, output_folder, mk_folder=False):
     for image in images:
-
-        # text = pytesseract.image_to_string(image, config='-l vie --psm 10 -c tessedit_char_blacklist=w[]|:;z,./?<>-_=+').strip()
-        # # Create the folder if it doesn't exist
-        # text_folder = os.path.join(output_folder, text)
-        # os.makedirs(text_folder, exist_ok=True)
 
         timestamp = int(time.time())
         random_string = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(5))
-
         filename = f"{timestamp}_{random_string}.png"
-        # filepath = os.path.join(output_folder, text, filename)
-        filepath = os.path.join(output_folder, filename)
+
+        # Use Tesseract to recognize the character
+        if (mk_folder):
+            text = pytesseract.image_to_string(image, config='-l vie --psm 10 -c '
+                                                             'tessedit_char_blacklist=!@#$%^&*<>?|/[]{}<>').strip().lower()
+            text = ''.join([__convert_to_normal_char(char) for char in text])
+            # Create the folder if it doesn't exist
+            text_folder = os.path.join(output_folder, text)
+            os.makedirs(text_folder, exist_ok=True)
+            filepath = os.path.join(output_folder, text, filename)
+
+        else:
+            filepath = os.path.join(output_folder, filename)
+
         # Write the character image to the file
         cv2.imwrite(filepath, image)
