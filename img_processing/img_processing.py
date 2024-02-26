@@ -5,9 +5,13 @@ import time
 
 import cv2
 import numpy as np
+import pytesseract
 
 
-def resize_image(image, scale_percent=100):
+def resize_image(image, scale_percent=100, new_width=1000):
+    if scale_percent == 100:
+        scale_percent = new_width / image.shape[1] * 100
+
     width = int(image.shape[1] * scale_percent / 100)
     height = int(image.shape[0] * scale_percent / 100)
     dim = (width, height)
@@ -21,16 +25,24 @@ def preprocess_image(image, ksize):
 
     # Applying dilation on the threshold image
     dilation = cv2.dilate(thresh_image, rect_kernel, iterations=1)
+
+    # # Display the image
+    # random_string = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(5))
+    # cv2.imshow(random_string, dilation)
+
     return dilation
 
 
 def preprocess_image_adaptive(image, blockSize, C=2):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
     denoised_image = cv2.GaussianBlur(gray_image, (5, 5), 1)
-    thresh_adaptive = cv2.adaptiveThreshold(255 - denoised_image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,
+    thresh_adaptive = cv2.adaptiveThreshold(255 - denoised_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,
                                             blockSize, C)
     # cv2.imshow("Adaptive Threshold", thresh_adaptive)
+
+    # Display the image
+    random_string = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(5))
+    cv2.imshow(random_string, thresh_adaptive)
 
     return 255 - thresh_adaptive
 
@@ -43,7 +55,7 @@ def find_contours(thresh_image):
 def filter_contours(contours, component):
     filtered_contours = []
     areas = [cv2.contourArea(cnt) for cnt in contours]
-    median_area = np.median(areas)
+    mean_area = np.mean(areas)
 
     for cnt in contours:
         area = cv2.contourArea(cnt)
@@ -57,7 +69,7 @@ def filter_contours(contours, component):
             if area > 300 and 0.5 < w / h < 10:
                 filtered_contours.append(cnt)
         elif component == "char":
-            if median_area / 5 < area < median_area * 2 and 0.1 <= w / h <= 2.5:
+            if mean_area / 5 < area < mean_area * 2.5 and 0.1 <= w / h <= 2.5:
                 filtered_contours.append(cnt)
 
     return filtered_contours
@@ -157,7 +169,8 @@ def detect_chars(parent_img, preprocess_method=preprocess_image, ksize=(1, 8), t
     for i, contour in enumerate(char_contours):
         x, y, w, h = cv2.boundingRect(contour)
         cv2.rectangle(parent_img2, (x, y), (x + w, y + h), (0, 255, 0), 1)
-        chars.append(parent_img[y:y + h, x:x + w])
+        char_img = parent_img[y:y + h, x:x + w]
+        chars.append(char_img)
 
     if show_result:
         cv2.imshow(title, parent_img2)
@@ -167,11 +180,17 @@ def detect_chars(parent_img, preprocess_method=preprocess_image, ksize=(1, 8), t
 
 def write_image(images, output_folder):
     for image in images:
+
+        # text = pytesseract.image_to_string(image, config='-l vie --psm 10 -c tessedit_char_blacklist=w[]|:;z,./?<>-_=+').strip()
+        # # Create the folder if it doesn't exist
+        # text_folder = os.path.join(output_folder, text)
+        # os.makedirs(text_folder, exist_ok=True)
+
         timestamp = int(time.time())
         random_string = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(5))
 
         filename = f"{timestamp}_{random_string}.png"
+        # filepath = os.path.join(output_folder, text, filename)
         filepath = os.path.join(output_folder, filename)
-
         # Write the character image to the file
         cv2.imwrite(filepath, image)
